@@ -154,6 +154,7 @@ def _find_atoms_ex(parent_atom, datastream):
             # Ignore this atom, seek to the end of it.
             datastream.seek(atom.position + atom.size)
 
+
 def _moov_is_compressed(datastream, moov_atom):
     """
         scan the atoms under the moov atom and detect whether or not the
@@ -174,8 +175,9 @@ def _moov_is_compressed(datastream, moov_atom):
     
     return False
 
-def process(infilename, outfilename, limit=float('inf'), to_end=False, 
-        cleanup=True):
+
+def process(infile, outfile, limit=float('inf'), to_end=False,
+            cleanup=True):
     """
         Convert a Quicktime/MP4 file for streaming by moving the metadata to
         the front of the file. This method writes a new file.
@@ -188,7 +190,7 @@ def process(infilename, outfilename, limit=float('inf'), to_end=False,
         If cleanup is set to False, free atoms and zero atoms will not be
         scrubbed from from the mov
     """
-    datastream = open(infilename, "rb")
+    datastream = infile
 
     # Get the top level atom index
     index = get_index(datastream)
@@ -243,7 +245,6 @@ def process(infilename, outfilename, limit=float('inf'), to_end=False,
     moov = _patch_moov(datastream, moov_atom, offset)
 
     log.info("Writing output...")
-    outfile = open(outfilename, "wb")
 
     # Write ftype
     for atom in index:
@@ -275,12 +276,6 @@ def process(infilename, outfilename, limit=float('inf'), to_end=False,
     if to_end:
         _write_moov(moov, outfile)
 
-    # Close and set permissions
-    outfile.close()
-    try:
-        shutil.copymode(infilename, outfilename)
-    except:
-        log.warn("Could not copy file permissions!")
 
 def _write_moov(moov, outfile):
     # Write moov

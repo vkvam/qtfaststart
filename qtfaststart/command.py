@@ -14,6 +14,7 @@ from qtfaststart.exceptions import FastStartException
 
 log = logging.getLogger("qtfaststart")
 
+
 def run():
     logging.basicConfig(level = logging.INFO, stream = sys.stdout,
                         format = "%(message)s")
@@ -40,6 +41,8 @@ def run():
         parser.print_help()
         raise SystemExit(1)
 
+    in_filename = args[0]
+
     if options.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
@@ -62,22 +65,32 @@ def run():
             print("Please pass an output filename when used with --sample!")
             raise SystemExit(1)
 
-        tmp, outfile = tempfile.mkstemp()
+        tmp, out_filename = tempfile.mkstemp()
         os.close(tmp)
     else:
-        outfile = args[1]
+        out_filename = args[1]
 
     limit = 0
     if options.sample:
         # Create a small sample (4 MiB)
         limit = 4 * (1024 ** 2)
 
+    with open(in_filename, "rb") as infile, open(out_filename, "wb") as outfile:
+        try:
+            processor.process(infile, outfile, limit=limit, to_end=options.to_end)
+        except FastStartException:
+            # A log message was printed, so exit with an error code
+            raise SystemExit(1)
+
+    # Close and set permissions
     try:
-        processor.process(args[0], outfile, limit = limit, to_end = options.to_end)
-    except FastStartException:
-        # A log message was printed, so exit with an error code
-        raise SystemExit(1)
+        shutil.copymode(in_filename, out_filename)
+    except:
+        log.warn("Could not copy file permissions!")
 
     if len(args) == 1:
         # Move temp file to replace original
-        shutil.move(outfile, args[0])
+        shutil.move(in_filename, out_filename)
+
+
+
